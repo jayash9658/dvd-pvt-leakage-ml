@@ -1,0 +1,204 @@
+{
+  "NMOS_ON": {
+    "file": "NMOS_ON.joblib",
+    "model_type": "mlp",
+    "label": "MLP neural network",
+    "validation_score": 3.819,
+    "target_mode": "kcl",
+    "test": {
+      "id": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999542,
+        "r2_lin": 0.999498,
+        "med_err_pct": 1.763099,
+        "p95_err_pct": 7.829282,
+        "mean_err_pct": 47.337105,
+        "med_err_plain_pct": 1.763099,
+        "p95_err_plain_pct": 7.829282
+      },
+      "ig": {
+        "n": 1101.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999901,
+        "r2_lin": 0.996309,
+        "med_err_pct": 1.089447,
+        "p95_err_pct": 3.980755,
+        "mean_err_pct": 1.544551,
+        "med_err_plain_pct": 1.089447,
+        "p95_err_plain_pct": 4.070899
+      },
+      "is": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999676,
+        "r2_lin": 0.999498,
+        "med_err_pct": 1.763103,
+        "p95_err_pct": 7.607432,
+        "mean_err_pct": 7.640627,
+        "med_err_plain_pct": 1.763103,
+        "p95_err_plain_pct": 7.607432
+      },
+      "ib": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999466,
+        "r2_lin": 0.994897,
+        "med_err_pct": 1.539357,
+        "p95_err_pct": 5.013641,
+        "mean_err_pct": 2.047147,
+        "med_err_plain_pct": 1.539357,
+        "p95_err_plain_pct": 5.013641
+      }
+    }
+  },
+  "NMOS_OFF": {
+    "file": "NMOS_OFF.joblib",
+    "model_type": "mlp",
+    "label": "MLP neural network",
+    "validation_score": 8.7568,
+    "target_mode": "direct",
+    "test": {
+      "id": {
+        "n": 1499.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999084,
+        "r2_lin": 0.926046,
+        "med_err_pct": 3.388866,
+        "p95_err_pct": 19.050539,
+        "mean_err_pct": 6.135243,
+        "med_err_plain_pct": 3.388866,
+        "p95_err_plain_pct": 19.124857
+      },
+      "ig": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999718,
+        "r2_lin": 0.999639,
+        "med_err_pct": 1.070318,
+        "p95_err_pct": 4.120031,
+        "mean_err_pct": 1.743354,
+        "med_err_plain_pct": 1.075167,
+        "p95_err_plain_pct": 4.21562
+      },
+      "is": {
+        "n": 1499.0,
+        "floor_A": 0.0,
+        "r2_log": 0.990437,
+        "r2_lin": 0.863419,
+        "med_err_pct": 6.534257,
+        "p95_err_pct": 35.869718,
+        "mean_err_pct": 12.101408,
+        "med_err_plain_pct": 14.632275,
+        "p95_err_plain_pct": 61.12237
+      },
+      "ib": {
+        "n": 1498.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999599,
+        "r2_lin": 0.998001,
+        "med_err_pct": 0.547139,
+        "p95_err_pct": 4.041129,
+        "mean_err_pct": 1.303831,
+        "med_err_plain_pct": 0.547139,
+        "p95_err_plain_pct": 4.041129
+      }
+    }
+  },
+  "PMOS_ON": {
+    "file": "PMOS_ON.joblib",
+    "model_type": "mlp",
+    "label": "MLP neural network",
+    "validation_score": 4.3029,
+    "target_mode": "kcl",
+    "test": {
+      "id": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999476,
+        "r2_lin": 0.99885,
+        "med_err_pct": 2.454011,
+        "p95_err_pct": 10.470378,
+        "mean_err_pct": 6.113518,
+        "med_err_plain_pct": 2.454011,
+        "p95_err_plain_pct": 10.470378
+      },
+      "ig": {
+        "n": 1498.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999988,
+        "r2_lin": 0.999706,
+        "med_err_pct": 0.675655,
+        "p95_err_pct": 2.938057,
+        "mean_err_pct": 0.974445,
+        "med_err_plain_pct": 0.94122,
+        "p95_err_plain_pct": 3.91581
+      },
+      "is": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999899,
+        "r2_lin": 0.99885,
+        "med_err_pct": 2.455516,
+        "p95_err_pct": 10.366702,
+        "mean_err_pct": 7.229072,
+        "med_err_plain_pct": 2.455516,
+        "p95_err_plain_pct": 10.395187
+      },
+      "ib": {
+        "n": 1451.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999402,
+        "r2_lin": 0.994511,
+        "med_err_pct": 1.472003,
+        "p95_err_pct": 6.76855,
+        "mean_err_pct": 2.293223,
+        "med_err_plain_pct": 1.472003,
+        "p95_err_plain_pct": 6.76855
+      }
+    }
+  },
+  "PMOS_OFF": {
+    "file": "PMOS_OFF.joblib",
+    "model_type": "mlp",
+    "label": "MLP neural network",
+    "validation_score": 6.6405,
+    "target_mode": "direct",
+    "test": {
+      "id": {
+        "n": 1495.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999579,
+        "r2_lin": 0.715611,
+        "med_err_pct": 1.350445,
+        "p95_err_pct": 6.933772,
+        "mean_err_pct": 2.538423,
+        "med_err_plain_pct": 1.350445,
+        "p95_err_plain_pct": 6.933772
+      },
+      "ig": null,
+      "is": {
+        "n": 1500.0,
+        "floor_A": 0.0,
+        "r2_log": 0.994176,
+        "r2_lin": 0.832464,
+        "med_err_pct": 2.32427,
+        "p95_err_pct": 22.064161,
+        "mean_err_pct": 5.81939,
+        "med_err_plain_pct": 6.745964,
+        "p95_err_plain_pct": 29.985633
+      },
+      "ib": {
+        "n": 1338.0,
+        "floor_A": 0.0,
+        "r2_log": 0.999442,
+        "r2_lin": 0.997267,
+        "med_err_pct": 0.683642,
+        "p95_err_pct": 4.512634,
+        "mean_err_pct": 1.563636,
+        "med_err_plain_pct": 0.683642,
+        "p95_err_plain_pct": 4.512634
+      }
+    }
+  }
+}

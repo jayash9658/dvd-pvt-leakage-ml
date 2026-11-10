@@ -1,0 +1,7 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# temporary working folders created (and normally deleted) by the scripts
+data/transistor/_work/
+ml_models/_work/

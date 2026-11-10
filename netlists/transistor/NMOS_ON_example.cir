@@ -1,0 +1,27 @@
+* 32nm_LP single NMOS - case NMOS_ON - sample 0
+* VDD=1.088707 V, T=101.8008 C, W=2.059045e-07 m
+.param p_n_vth0=0.6583231146 p_n_toxe=1.7524163e-09 p_n_ndep=4.105411548e+18 p_n_u0=0.03948043997 p_n_xj=5.283391824e-08
+.param p_p_vth0=-0.5808 p_p_toxe=1.62e-09 p_p_ndep=3.07e+18 p_p_u0=0.016 p_p_xj=1e-08
+.include "32nm_LP_param.lib"
+.options gmin=1e-18 abstol=1e-18 reltol=1e-6 vntol=1e-9
+.temp 101.800825
+
+M1 drain gate source body nmos W=2.059045e-07 L=3.200e-08
+Vd drain 0 dc 0.924622877
+Vg gate 0 dc 1.088706501
+Vs source 0 dc 0.682802021
+Vb body 0 dc 0.000000000
+
+.control
+set numdgt=12
+op
+* terminal currents INTO the device = -I(source)
+let id = -i(vd)
+let ig = -i(vg)
+let is = -i(vs)
+let ib = -i(vb)
+print id ig is ib
+echo Kirchhoff check (id+ig+is+ib):
+print id+ig+is+ib
+.endc
+.end

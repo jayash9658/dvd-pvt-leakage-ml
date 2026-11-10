@@ -1,0 +1,5 @@
+case,n_samples,max_abs_residual_A,median_abs_residual_A,median_rel_residual,p99_rel_residual,median_max_terminal_current_A
+NMOS_ON,10000,9.829e-15,1.860e-16,6.530e-11,1.279e-03,2.833e-06
+NMOS_OFF,10000,6.312e-21,4.164e-25,1.421e-11,8.259e-11,1.349e-14
+PMOS_ON,10000,7.776e-15,4.496e-17,3.347e-11,1.644e-03,1.580e-06
+PMOS_OFF,10000,9.793e-16,3.667e-17,1.163e-03,4.804e-02,1.304e-14
