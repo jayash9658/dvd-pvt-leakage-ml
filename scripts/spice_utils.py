@@ -98,7 +98,7 @@ def param_lines(nmos: dict, pmos: dict) -> str:
 # ----------------------------------------------------------------------------
 # Batch runner
 # ----------------------------------------------------------------------------
-_PRINT_RE = re.compile(r"^\s*([\w()#:.\-]+)\s*=\s*([-+0-9.eE]+|nan|inf)\s*$", re.I)
+_PRINT_RE = re.compile(r"^\s*([\w()#:.\-@\[\]]+)\s*=\s*([-+0-9.eE]+|nan|inf)\s*$", re.I)
 
 
 def run_batch(exe: str, workdir: Path, cir_names: list, print_vectors: list,

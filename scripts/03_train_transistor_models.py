@@ -57,9 +57,14 @@ def job(case, module_name):
     mod = importlib.import_module(module_name)
     model, val, test, sec = common.train_one(case, mod, n_jobs=1)
     joblib.dump(model, WORK / f"{case}__{mod.NAME}.joblib", compress=3)
+    # the fitted physics equations alone (identical for every model type: same fit)
+    df, comp = common.load_case(case), common.load_components(case)
+    _, va, te = common.split_indices(len(df))
+    phys_val = model.evaluate(df.iloc[va], comp.iloc[va], physics_only=True)
     return {"case": case, "model": mod.NAME, "label": mod.LABEL, "hyper": mod.HYPERPARAMS,
-            "val": val, "test": test, "seconds": sec,
-            "score": common.selection_score(val)}
+            "val": val, "test": test, "seconds": sec, "phys_val": phys_val,
+            "score": common.selection_score(val), "n": len(df), "n_val": len(va),
+            "n_test": len(te), "n_train": len(df) - len(va) - len(te)}
 
 
 def long_table(results, split):
@@ -94,14 +99,17 @@ def header_row():
 
 def write_text(results, best, path):
     by_case = {c: [r for r in results if r["case"] == c] for c in config.CASES}
+    r0 = results[0]
     L = []
     L += ["PART A STEP 2 - TRANSISTOR ML MODEL COMPARISON",
           "=" * 46,
           f"Generated   : {dt.datetime.now():%Y-%m-%d %H:%M} by scripts/03_train_transistor_models.py",
           f"Technology  : {config.TECH}, VDD nominal {config.VDD_NOM} V, L = {config.L_MIN*1e9:.0f} nm",
-          "Data        : data/transistor/<CASE>.csv, 10,000 SPICE samples per case",
-          f"Split       : 70 / 15 / 15 % = 7,000 train / 1,500 validation / 1,500 test "
-          f"(random, seed {config.SEED_SPLIT})",
+          f"Data        : data/transistor/<CASE>.csv, {r0['n']:,} SPICE samples per case "
+          "(uniform, extremes of Vd/Vs/T mildly enriched)",
+          "              + data/transistor/components/<CASE>_components.csv (BSIM4 current components)",
+          f"Split       : 70 / 15 / 15 % = {r0['n_train']:,} train / {r0['n_val']:,} validation / "
+          f"{r0['n_test']:,} test (random, seed {config.SEED_SPLIT})",
           "Inputs      : vdd, temp, w, vd, vs, vg, vb, vth0, toxe, ndep, u0, xj "
           "(+ derived physics features, scripts/ml/common.py)",
           "Outputs     : id, ig, is, ib (A, current into the terminal)",
@@ -111,10 +119,12 @@ def write_text(results, best, path):
           "  med%  median relative error  |I_ML - I_SPICE| / max(|I_SPICE|, 1 fA)  x 100",
           "  p95%  95th-percentile of the same relative error",
           "  The 1 fA floor stops currents far below any gate leakage (and near SPICE",
-          "  resolution) from dominating; NMOS_OFF ig (~1e-22 A) uses its own 1st-percentile",
-          "  value as the floor instead. SPICE-noise samples (ig values that are exact",
-          "  multiples of 2.2e-16 A) are excluded. PMOS_OFF ig is entirely SPICE noise",
-          "  (|ig| < 1 fA), so it is predicted as 0 and marked n/a.",
+          "  resolution) from dominating; the OFF-state ig (~1e-22 A) uses its own",
+          "  1st-percentile value as the floor instead.",
+          "  Reference values: id, is = SPICE terminal currents (CSV); ig, ib = BSIM4's own",
+          "  gate / body current (sum of its components). They equal the terminal values",
+          "  except where those carry ~1e-16 A double-precision rounding noise (all of",
+          "  PMOS_OFF ig, part of NMOS_ON ig, PMOS ib below ~1e-15 A).",
           "Selection rule: lowest validation score = mean over the currents of (med% + p95%)/2.",
           "",
           "Model types (one .py file each in scripts/ml/):"]
@@ -123,20 +133,35 @@ def write_text(results, best, path):
         seen.setdefault(r["model"], r)
     for name, r in seen.items():
         L.append(f"  {r['label']:24s} model_{name}.py: {r['hyper']}")
-    L += ["  All four share the same features and target handling (scripts/ml/common.py):",
-          "  ON cases learn ln[(id-is)/(vd-vs)] as a correction to a fitted EKV-style",
-          "  baseline plus ig and ib, and rebuild id and is with Kirchhoff's law;",
-          "  OFF cases learn id, ig, is, ib directly. Currents are learned as asinh(I/I0).",
+    L += ["",
+          "Method (same for all four model types, scripts/ml/common.py): physics-based",
+          "component models. Each terminal current is a sum of BSIM4 mechanisms; each",
+          "mechanism is modelled by its physics equation, fitted on the training set,",
+          "and the ML model learns only the correction ln|I_SPICE| - ln|I_physics|:",
+          "  channel current         ON: EKV equation; OFF: subthreshold equation",
+          "                          (Vth with body effect, DIBL, temperature, process)",
+          "  source junction         diode with BSIM4 temperature law (Eg(T), XTI)",
+          "  gate-body tunnelling    direct-tunnelling form f(W, toxe, Vgb, T)",
+          "  gate-channel tunnelling (source / drain side)  same form, with Vgs / Vgd",
+          "  impact ionisation       f(channel current, Vds)",
+          "  drain junction, GIDL, GISL: exact BSIM4 equations (no ML needed)",
+          "id, ig, is, ib are then summed from the mechanisms with Kirchhoff's law, so",
+          "id + ig + is + ib = 0 exactly.",
           "", ""]
 
-    L += ["1) VALIDATION SET (1,500 samples per case) - model comparison", "-" * 62]
+    L += [f"1) VALIDATION SET ({r0['n_val']:,} samples per case) - model comparison", "-" * 62,
+          "   ('Physics equations only' = the fitted equations without any ML correction,",
+          "    shown for reference; it is not one of the four candidates.)"]
     for case, rs in by_case.items():
         L += ["", f"{case}"] + header_row()
+        L.append(fmt_row("Physics equations only", rs[0]["phys_val"],
+                         f" | score {common.selection_score(rs[0]['phys_val']):7.2f}"))
         for r in sorted(rs, key=lambda r: MODEL_MODULES.index("model_" + r["model"])):
             mark = "   <== BEST" if r["model"] == best[case]["model"] else ""
             L.append(fmt_row(r["label"], r["val"],
                              f" | score {r['score']:7.2f}  ({r['seconds']:.0f} s){mark}"))
-    L += ["", "", "2) CHOSEN MODEL PER CASE - TEST SET (1,500 unseen samples per case)", "-" * 66]
+    L += ["", "", f"2) CHOSEN MODEL PER CASE - TEST SET ({r0['n_test']:,} unseen samples per case)",
+          "-" * 66]
     L += [""] + header_row()
     for case in config.CASES:
         b = best[case]
@@ -157,20 +182,14 @@ def write_text(results, best, path):
 
 
 def pred_vs_spice_plot(case, model):
-    df = common.load_case(case)
+    df, comp = common.load_case(case), common.load_components(case)
     _, _, te = common.split_indices(len(df))
     d = df.iloc[te]
+    ref = common.reference_currents(d, comp.iloc[te], model.dev)
     p = model.predict(d)
     fig, axes = plt.subplots(2, 2, figsize=(9, 8))
     for ax, t in zip(axes.ravel(), common.TARGETS):
-        true, pred = d[t].to_numpy(), p[t].to_numpy()
-        keep = ~common.noise_mask(true)
-        if model.unresolved.get(t) or keep.sum() == 0:
-            ax.text(0.5, 0.5, f"{t}: below SPICE resolution\n(|{t}| < 1 fA, predicted as 0)",
-                    ha="center", va="center", transform=ax.transAxes)
-            ax.set_axis_off()
-            continue
-        true, pred = true[keep], pred[keep]
+        true, pred = ref[t].to_numpy(), p[t].to_numpy()
         same = np.sign(true) == np.sign(pred)
         ax.scatter(np.abs(true[same]), np.abs(pred[same]), s=4, alpha=0.4, color="#2a6fdb",
                    label="same sign")
@@ -183,14 +202,14 @@ def pred_vs_spice_plot(case, model):
         ax.plot(xs, xs, "k-", lw=1)
         ax.plot(xs, xs * 1.1, "k:", lw=0.8)
         ax.plot(xs, xs / 1.1, "k:", lw=0.8, label="±10 %")
-        m = common.metrics(p[t].to_numpy(), d[t].to_numpy())
+        m = common.metrics(pred, true)
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.set_xlabel(f"|{t}| SPICE (A)"); ax.set_ylabel(f"|{t}| ML (A)")
         ax.set_title(f"{t}: median {m['med_err_pct']:.2f} %, p95 {m['p95_err_pct']:.1f} %",
                      fontsize=10)
         ax.grid(True, which="both", alpha=0.3)
         ax.legend(fontsize=8, markerscale=2)
-    fig.suptitle(f"{case} - {model.model_name} - test set (1,500 samples), predicted vs SPICE",
+    fig.suptitle(f"{case} - {model.model_name} - test set ({len(d):,} samples), predicted vs SPICE",
                  fontsize=11)
     fig.tight_layout()
     fig.savefig(PLOTS / f"pred_vs_spice_{case}.png", dpi=150)
@@ -231,7 +250,7 @@ def main():
         pred_vs_spice_plot(c, model)
         index[c] = {"file": dst.name, "model_type": b["model"], "label": b["label"],
                     "validation_score": round(b["score"], 4),
-                    "target_mode": common.TARGET_MODE[c],
+                    "method": "physics component models (scripts/ml/common.py)",
                     "test": {t: (None if b["test"][t] is None else
                                  {k: round(float(v), 6) for k, v in b["test"][t].items()})
                              for t in common.TARGETS}}

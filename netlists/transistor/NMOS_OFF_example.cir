@@ -1,15 +1,15 @@
 * 32nm_LP single NMOS - case NMOS_OFF - sample 0
-* VDD=0.969257 V, T=-1.9839 C, W=1.345750e-07 m
-.param p_n_vth0=0.6492416305 p_n_toxe=1.669946981e-09 p_n_ndep=4.2977497e+18 p_n_u0=0.03833886566 p_n_xj=5.041006418e-08
+* VDD=0.969257 V, T=21.5103 C, W=1.531854e-07 m
+.param p_n_vth0=0.6649380381 p_n_toxe=1.44649369e-09 p_n_ndep=4.254951111e+18 p_n_u0=0.04049291724 p_n_xj=4.741269464e-08
 .param p_p_vth0=-0.5808 p_p_toxe=1.62e-09 p_p_ndep=3.07e+18 p_p_u0=0.016 p_p_xj=1e-08
 .include "32nm_LP_param.lib"
 .options gmin=1e-18 abstol=1e-18 reltol=1e-6 vntol=1e-9
-.temp -1.983909
+.temp 21.510266
 
-M1 drain gate source body nmos W=1.345750e-07 L=3.200e-08
+M1 drain gate source body nmos W=1.531854e-07 L=3.200e-08
 Vd drain 0 dc 0.453114958
 Vg gate 0 dc 0.000000000
-Vs source 0 dc 0.662503106
+Vs source 0 dc 0.632645374
 Vb body 0 dc 0.000000000
 
 .control

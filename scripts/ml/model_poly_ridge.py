@@ -15,7 +15,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 NAME = "poly_ridge"
 LABEL = "Polynomial ridge (d=3)"
-HYPERPARAMS = "all terms up to degree 3 of the 29-30 standardised features (~5,000 terms), ridge alpha=1e-3"
+HYPERPARAMS = "all terms up to degree 3 of the 31 standardised inputs (25 features + 6 physics-equation values, ~6,000 terms), ridge alpha=1e-3"
 
 
 def make_regressor(n_jobs: int = 1):

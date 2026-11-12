@@ -3,13 +3,20 @@ Part A, step 1: generate the single-transistor datasets.
 
 For each case (NMOS_ON, NMOS_OFF, PMOS_ON, PMOS_OFF) this script
   1. draws N_SAMPLES random samples (VDD first, then Vd, Vs, W, T and the five
-     process parameters), all independent and uniform as in Section 4 of the spec,
+     process parameters), all independent, uniform as in Section 4 of the spec
+     except for a mild enrichment of the extremes of Vd, Vs and T (see
+     config.EDGE_*: ~15 % of samples near each variable's ends instead of
+     10-12 %; the rest stays uniform),
   2. writes one single-FET netlist per sample (each terminal has its own
      voltage source; required .options line included),
   3. simulates them with ngspice (op analysis), many circuits per ngspice
      process and several processes in parallel,
   4. saves data/transistor/<CASE>.csv with columns
      vdd,temp,w,vd,vs,vg,vb,vth0,toxe,ndep,u0,xj,id,ig,is,ib
+  5. saves data/transistor/components/<CASE>_components.csv: BSIM4's internal
+     current components for the same samples (channel current, junction
+     currents, gate tunnelling, GIDL, impact ionisation), used to train the
+     physics-based models. Same row order as <CASE>.csv.
 
 Units: volts, degC, metres (w, toxe, xj), cm^-3 (ndep), m^2/Vs (u0), amperes.
 Current sign: current flowing INTO the device terminal (so id+ig+is+ib = 0).
@@ -37,6 +44,22 @@ NETLIST_OUT = config.NETLIST_DIR / "transistor"   # keeps the 4 example netlists
 WORK_ROOT = OUT_DIR / "_work"                     # temporary per-sample netlists (deleted)
 PARAM_LIB_NAME = f"{config.TECH}_param.lib"
 BATCH_SIZE = 250
+COMP_VECS = [f"@m1[{c}]" for c in config.COMPONENTS]
+
+
+def edge_uniform(rng, n, lo, hi, band, p_edge):
+    """
+    Uniform on [lo, hi], except that with probability p_edge a value is drawn
+    uniformly inside [lo, lo+band] or [hi-band, hi] (either end, 50/50).
+    All random numbers are drawn for every sample, so the stream is the same
+    whatever the outcome.
+    """
+    u = rng.uniform(lo, hi, n)
+    use_edge = rng.uniform(0, 1, n) < p_edge
+    top = rng.uniform(0, 1, n) < 0.5
+    e = rng.uniform(0, band, n)
+    edge_val = np.where(top, hi - e, lo + e)
+    return np.where(use_edge, edge_val, u)
 
 
 def draw_samples(case: str, n: int, nominal: dict) -> pd.DataFrame:
@@ -46,10 +69,10 @@ def draw_samples(case: str, n: int, nominal: dict) -> pd.DataFrame:
 
     vdd = rng.uniform(config.VDD_NOM * (1 - config.VDD_TOL),
                       config.VDD_NOM * (1 + config.VDD_TOL), n)     # VDD first
-    vd = rng.uniform(0.0, 1.0, n) * vdd
-    vs = rng.uniform(0.0, 1.0, n) * vdd
+    vd = edge_uniform(rng, n, 0.0, 1.0, config.EDGE_V_BAND, config.EDGE_P_V) * vdd
+    vs = edge_uniform(rng, n, 0.0, 1.0, config.EDGE_V_BAND, config.EDGE_P_V) * vdd
     w = rng.uniform(config.W_MIN_MULT, config.W_MAX_MULT, n) * config.L_MIN
-    temp = rng.uniform(*config.TEMP_RANGE, n)
+    temp = edge_uniform(rng, n, *config.TEMP_RANGE, config.EDGE_TEMP_BAND, config.EDGE_P_TEMP)
     proc = {p: nominal[dev][p] * rng.uniform(1 - config.PROC_TOL, 1 + config.PROC_TOL, n)
             for p in config.PROC_PARAMS}
     vg = vdd if spec["vg"] == "VDD" else np.zeros(n)
@@ -88,7 +111,7 @@ def sample_netlist(case: str, idx: int, row, nominal: dict, lib_ref: str,
     return txt + ".end\n"
 
 
-def run_case(case: str, n: int, exe: str, nominal: dict, workers: int) -> pd.DataFrame:
+def run_case(case: str, n: int, exe: str, nominal: dict, workers: int):
     df = draw_samples(case, n, nominal)
 
     # per-sample netlists are written to a temporary folder, simulated, then deleted;
@@ -112,7 +135,7 @@ def run_case(case: str, n: int, exe: str, nominal: dict, workers: int) -> pd.Dat
                        PARAM_LIB_NAME, with_control=True))
 
     batches = [names[i:i + BATCH_SIZE] for i in range(0, len(names), BATCH_SIZE)]
-    vecs = ["i(vd)", "i(vg)", "i(vs)", "i(vb)"]
+    vecs = ["i(vd)", "i(vg)", "i(vs)", "i(vb)"] + COMP_VECS
     results = {}
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -124,18 +147,22 @@ def run_case(case: str, n: int, exe: str, nominal: dict, workers: int) -> pd.Dat
 
     # current INTO the device terminal = -I(source)
     cur = np.full((n, 4), np.nan)
+    comp = np.full((n, len(COMP_VECS)), np.nan)
     for i, name in enumerate(names):
         r = results.get(name)
         if r:
             cur[i] = [-r["i(vd)"], -r["i(vg)"], -r["i(vs)"], -r["i(vb)"]]
+            comp[i] = [r[v] for v in COMP_VECS]
     df["id"], df["ig"], df["is"], df["ib"] = cur.T
+    comp = pd.DataFrame(comp, columns=config.COMPONENTS)
 
     n_fail = int(np.isnan(cur).any(axis=1).sum())
     print(f"  {case}: {n - n_fail}/{n} samples simulated in {dt:.1f} s"
           + (f"  ({n_fail} FAILED - dropped)" if n_fail else ""))
-    df = df.dropna().reset_index(drop=True)
+    ok = ~(np.isnan(cur).any(axis=1) | comp.isna().any(axis=1).to_numpy())
+    df, comp = df[ok].reset_index(drop=True), comp[ok].reset_index(drop=True)
     shutil.rmtree(work)
-    return df[config.CSV_COLUMNS]
+    return df[config.CSV_COLUMNS], comp
 
 
 def main():
@@ -166,9 +193,12 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     su.write_param_model(NETLIST_OUT / PARAM_LIB_NAME)   # used by example netlists
     for case in args.cases:
-        df = run_case(case, args.n, exe, nominal, args.workers)
+        df, comp = run_case(case, args.n, exe, nominal, args.workers)
         out = OUT_DIR / f"{case}.csv"
         df.to_csv(out, index=False, float_format="%.10e")
+        (OUT_DIR / "components").mkdir(exist_ok=True)
+        comp.to_csv(OUT_DIR / "components" / f"{case}_components.csv", index=False,
+                    float_format="%.10e")
         shown = out.relative_to(config.ROOT) if out.is_relative_to(config.ROOT) else out
         print(f"  -> {shown}  ({len(df)} rows)")
     if WORK_ROOT.exists() and not any(WORK_ROOT.iterdir()):

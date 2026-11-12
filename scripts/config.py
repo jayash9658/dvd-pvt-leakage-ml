@@ -35,6 +35,17 @@ TEMP_RANGE = (-40.0, 125.0)   # degC
 PROC_TOL = 0.10           # process params = nominal +/- 10 %
 PROC_PARAMS = ["vth0", "toxe", "ndep", "u0", "xj"]
 
+# Mild corner enrichment (everything else stays uniform). With probability
+# EDGE_P_* a value is drawn uniformly inside the band at one end of its range
+# instead of over the whole range, so the extremes get a few more samples
+# than plain uniform sampling gives, while the bulk of the data stays uniform:
+#   temperature within 10 degC of -40 / 125 degC : 12.1 % (uniform) -> ~15.6 %
+#   Vd, Vs within 5 % of VDD from 0 V or VDD     : 10.0 % (uniform) -> ~15.4 %
+EDGE_TEMP_BAND = 10.0         # degC at each end of TEMP_RANGE
+EDGE_P_TEMP = 0.04
+EDGE_V_BAND = 0.05            # fraction of VDD at each rail
+EDGE_P_V = 0.06
+
 # Nominal process parameters read from models/32nm_LP.pm
 # (also re-parsed at run time from the model file; these are a cross-check)
 NOMINAL = {
@@ -64,6 +75,12 @@ N_SAMPLES = 10_000
 SEED_TRANSISTOR_DATA = {"NMOS_ON": 101, "NMOS_OFF": 202, "PMOS_ON": 303, "PMOS_OFF": 404}
 SEED_SPLIT = 42
 SEED_CORNERS = 2025
+
+# BSIM4 internal current components saved next to each dataset
+# (data/transistor/components/<CASE>_components.csv). They are not model
+# inputs; they are extra SPICE outputs used to train the physics-based
+# component models (scripts/ml/common.py).
+COMPONENTS = ["id", "isub", "igidl", "igisl", "igs", "igd", "igb", "igcs", "igcd", "ibd", "ibs"]
 
 # CSV column order required by the deliverables
 CSV_COLUMNS = ["vdd", "temp", "w", "vd", "vs", "vg", "vb",

@@ -1,8 +1,9 @@
 PART A STEP 2 - TRANSISTOR ML MODEL COMPARISON
 ==============================================
-Generated   : 2026-11-09 16:59 by scripts/03_train_transistor_models.py
+Generated   : 2026-11-12 11:51 by scripts/03_train_transistor_models.py
 Technology  : 32nm_LP, VDD nominal 1.0 V, L = 32 nm
-Data        : data/transistor/<CASE>.csv, 10,000 SPICE samples per case
+Data        : data/transistor/<CASE>.csv, 10,000 SPICE samples per case (uniform, extremes of Vd/Vs/T mildly enriched)
+              + data/transistor/components/<CASE>_components.csv (BSIM4 current components)
 Split       : 70 / 15 / 15 % = 7,000 train / 1,500 validation / 1,500 test (random, seed 42)
 Inputs      : vdd, temp, w, vd, vs, vg, vb, vth0, toxe, ndep, u0, xj (+ derived physics features, scripts/ml/common.py)
 Outputs     : id, ig, is, ib (A, current into the terminal)
@@ -12,61 +13,79 @@ Metrics (per terminal current):
   med%  median relative error  |I_ML - I_SPICE| / max(|I_SPICE|, 1 fA)  x 100
   p95%  95th-percentile of the same relative error
   The 1 fA floor stops currents far below any gate leakage (and near SPICE
-  resolution) from dominating; NMOS_OFF ig (~1e-22 A) uses its own 1st-percentile
-  value as the floor instead. SPICE-noise samples (ig values that are exact
-  multiples of 2.2e-16 A) are excluded. PMOS_OFF ig is entirely SPICE noise
-  (|ig| < 1 fA), so it is predicted as 0 and marked n/a.
+  resolution) from dominating; the OFF-state ig (~1e-22 A) uses its own
+  1st-percentile value as the floor instead.
+  Reference values: id, is = SPICE terminal currents (CSV); ig, ib = BSIM4's own
+  gate / body current (sum of its components). They equal the terminal values
+  except where those carry ~1e-16 A double-precision rounding noise (all of
+  PMOS_OFF ig, part of NMOS_ON ig, PMOS ib below ~1e-15 A).
 Selection rule: lowest validation score = mean over the currents of (med% + p95%)/2.
 
 Model types (one .py file each in scripts/ml/):
-  Polynomial ridge (d=3)   model_poly_ridge.py: all terms up to degree 3 of the 29-30 standardised features (~5,000 terms), ridge alpha=1e-3
+  Polynomial ridge (d=3)   model_poly_ridge.py: all terms up to degree 3 of the 31 standardised inputs (25 features + 6 physics-equation values, ~6,000 terms), ridge alpha=1e-3
   Random forest            model_random_forest.py: 300 trees, max_features=0.5, min_samples_leaf=1
   XGBoost                  model_xgboost.py: up to 6000 trees, lr=0.03, max_depth=6, subsample=0.8, colsample=0.8, early stopping (200 rounds) on 10 % of the training set
   MLP neural network       model_mlp.py: 3 x 128 tanh, Adam lr=1e-3, batch 64, L2 alpha=1e-6, up to 3000 epochs, early stopping (patience 60) on 10 % of the training set
-  All four share the same features and target handling (scripts/ml/common.py):
-  ON cases learn ln[(id-is)/(vd-vs)] as a correction to a fitted EKV-style
-  baseline plus ig and ib, and rebuild id and is with Kirchhoff's law;
-  OFF cases learn id, ig, is, ib directly. Currents are learned as asinh(I/I0).
+
+Method (same for all four model types, scripts/ml/common.py): physics-based
+component models. Each terminal current is a sum of BSIM4 mechanisms; each
+mechanism is modelled by its physics equation, fitted on the training set,
+and the ML model learns only the correction ln|I_SPICE| - ln|I_physics|:
+  channel current         ON: EKV equation; OFF: subthreshold equation
+                          (Vth with body effect, DIBL, temperature, process)
+  source junction         diode with BSIM4 temperature law (Eg(T), XTI)
+  gate-body tunnelling    direct-tunnelling form f(W, toxe, Vgb, T)
+  gate-channel tunnelling (source / drain side)  same form, with Vgs / Vgd
+  impact ionisation       f(channel current, Vds)
+  drain junction, GIDL, GISL: exact BSIM4 equations (no ML needed)
+id, ig, is, ib are then summed from the mechanisms with Kirchhoff's law, so
+id + ig + is + ib = 0 exactly.
 
 
 1) VALIDATION SET (1,500 samples per case) - model comparison
 --------------------------------------------------------------
+   ('Physics equations only' = the fitted equations without any ML correction,
+    shown for reference; it is not one of the four candidates.)
 
 NMOS_ON
                                     ID            |          IG            |          IS            |          IB           
   model                        R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95%
   --------------------------------------------------------------------------------------------------------------------------
-  Polynomial ridge (d=3)   0.9687    2.18   42.43 | 0.9663    1.73   13.56 | 0.9626    2.20   40.10 | 0.8883    7.11   22.12 | score   16.43  (32 s)
-  Random forest            0.9997    2.63   12.56 | 0.9903   14.30   56.90 | 0.9996    2.64   12.57 | 0.9881    4.03   33.03 | score   17.33  (181 s)
-  XGBoost                  0.9998    1.14    6.95 | 0.9970    6.61   27.50 | 0.9996    1.14    6.74 | 0.9962    2.70   19.76 | score    9.07  (152 s)
-  MLP neural network       0.9999    1.59    7.39 | 0.9999    1.04    4.86 | 0.9997    1.58    7.39 | 0.9996    1.52    5.18 | score    3.82  (236 s)   <== BEST
+  Physics equations only   0.9999    7.69   30.85 | 0.9727   36.49  261.92 | 0.9999    7.83   31.99 | 0.9892    7.08   35.48 | score   52.42
+  Polynomial ridge (d=3)   1.0000    0.49    2.70 | 0.9997    0.84    5.29 | 0.9999    0.50    2.84 | 0.9071    0.63    9.25 | score    2.82  (91 s)
+  Random forest            1.0000    2.60   10.53 | 0.9995    4.66   20.78 | 1.0000    2.63   10.66 | 0.9998    0.22    5.98 | score    7.26  (401 s)
+  XGBoost                  1.0000    1.22    5.38 | 0.9999    2.52   10.23 | 1.0000    1.23    5.46 | 0.9999    0.17    3.29 | score    3.69  (405 s)
+  MLP neural network       1.0000    0.54    2.74 | 1.0000    0.90    3.95 | 1.0000    0.55    2.81 | 1.0000    0.38    1.59 | score    1.68  (418 s)   <== BEST
 
 NMOS_OFF
                                     ID            |          IG            |          IS            |          IB           
   model                        R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95%
   --------------------------------------------------------------------------------------------------------------------------
-  Polynomial ridge (d=3)   0.5790   31.52  126.43 | 0.9554    0.79    7.14 | 0.1496   42.66 1338.67 | 0.8660    5.40   19.37 | score  196.50  (38 s)
-  Random forest            0.9881    0.48   60.24 | 0.9810   17.51   82.93 | 0.9659    6.50   84.20 | 0.9976    0.26   13.15 | score   33.16  (266 s)
-  XGBoost                  0.9917    0.99   49.83 | 0.9944    7.64   30.12 | 0.9671    8.13   89.09 | 0.9988    0.45    9.34 | score   24.45  (203 s)
-  MLP neural network       0.9992    3.10   17.54 | 0.9991    1.02    4.17 | 0.9978    6.75   32.94 | 0.9998    0.55    3.98 | score    8.76  (256 s)   <== BEST
+  Physics equations only   0.9988    0.06   19.97 | 0.9927    8.44   28.84 | 0.9938    5.40   23.82 | 0.9990    0.59   12.27 | score   12.42
+  Polynomial ridge (d=3)   0.9999    0.01    1.33 | 0.9992    0.41    4.11 | 0.9989    0.50    9.86 | 0.9976    0.06    8.50 | score    3.10  (89 s)
+  Random forest            0.9998    0.02    7.50 | 0.9999    1.26    5.09 | 0.9999    0.16    7.35 | 1.0000    0.01    0.22 | score    2.70  (417 s)
+  XGBoost                  1.0000    0.01    2.65 | 0.9993    2.51    8.20 | 1.0000    0.15    2.76 | 1.0000    0.01    0.25 | score    2.07  (266 s)
+  MLP neural network       1.0000    0.01    1.57 | 0.9992    0.72    3.02 | 1.0000    0.17    1.53 | 1.0000    0.01    0.52 | score    0.94  (417 s)   <== BEST
 
 PMOS_ON
                                     ID            |          IG            |          IS            |          IB           
   model                        R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95%
   --------------------------------------------------------------------------------------------------------------------------
-  Polynomial ridge (d=3)   0.9958    2.26   20.09 | 0.9796    4.64   21.09 | 0.9994    2.26   20.61 | 0.6629    7.56   23.03 | score   12.69  (35 s)
-  Random forest            0.9995    2.08    9.54 | 0.9976    9.39   42.00 | 0.9996    2.08    9.59 | 0.9897    3.66   37.79 | score   14.52  (204 s)
-  XGBoost                  0.9995    0.83    4.60 | 0.9995    4.36   19.64 | 0.9996    0.84    4.85 | 0.9961    2.68   20.98 | score    7.35  (169 s)
-  MLP neural network       0.9997    2.38    9.41 | 1.0000    0.71    2.93 | 0.9997    2.38    8.78 | 0.9993    1.54    6.30 | score    4.30  (253 s)   <== BEST
+  Physics equations only   0.9999    6.97   25.24 | 0.9778   32.42  173.86 | 1.0000    7.12   25.72 | 0.9929    5.00   29.36 | score   38.21
+  Polynomial ridge (d=3)   1.0000    0.38    1.81 | 0.9987    0.75    6.05 | 1.0000    0.39    2.15 | 0.9978    0.43   10.11 | score    2.76  (91 s)
+  Random forest            1.0000    2.09    8.49 | 0.9996    4.22   17.35 | 1.0000    2.07    8.41 | 0.9998    0.20    5.22 | score    6.01  (403 s)
+  XGBoost                  1.0000    0.99    4.59 | 0.9999    1.93    8.22 | 1.0000    0.99    4.53 | 1.0000    0.15    2.73 | score    3.02  (398 s)
+  MLP neural network       1.0000    0.33    1.35 | 1.0000    0.75    3.29 | 1.0000    0.34    1.34 | 1.0000    0.16    1.01 | score    1.07  (489 s)   <== BEST
 
 PMOS_OFF
                                     ID            |          IG            |          IS            |          IB           
   model                        R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95%
   --------------------------------------------------------------------------------------------------------------------------
-  Polynomial ridge (d=3)   0.2652   27.01  110.16 |    n/a     n/a     n/a | 0.1017   41.58 1535.28 |-0.5783    6.33   18.35 | score  289.79  (28 s)
-  Random forest            0.9882    0.36   57.42 |    n/a     n/a     n/a | 0.9466    6.30   85.98 | 0.9950    0.81   14.39 | score   27.54  (202 s)
-  XGBoost                  0.9908    0.70   52.98 |    n/a     n/a     n/a | 0.9403    7.56   98.52 | 0.9962    1.05   10.48 | score   28.55  (146 s)
-  MLP neural network       0.9998    1.33    7.60 |    n/a     n/a     n/a | 0.9940    2.62   23.40 | 0.9988    0.69    4.21 | score    6.64  (231 s)   <== BEST
+  Physics equations only   0.9993    0.04   17.61 | 0.9948    8.35   27.84 | 0.9964    5.97   25.56 | 0.9986    0.68   14.83 | score   12.61
+  Polynomial ridge (d=3)   1.0000    0.01    0.72 | 0.9991    0.49    5.88 | 0.9986    0.38    9.93 | 0.9985    0.09    9.67 | score    3.40  (89 s)
+  Random forest            0.9999    0.01    7.17 | 0.9999    1.07    5.03 | 0.9984    0.15    7.80 | 1.0000    0.01    0.26 | score    2.69  (426 s)
+  XGBoost                  1.0000    0.01    2.39 | 0.9999    0.33    1.95 | 1.0000    0.14    2.45 | 1.0000    0.01    0.27 | score    0.94  (328 s)   <== BEST
+  MLP neural network       1.0000    0.01    1.44 | 0.9997    0.90    3.85 | 1.0000    0.27    1.58 | 1.0000    0.01    0.93 | score    1.12  (415 s)
 
 
 2) CHOSEN MODEL PER CASE - TEST SET (1,500 unseen samples per case)
@@ -75,16 +94,16 @@ PMOS_OFF
                                     ID            |          IG            |          IS            |          IB           
   model                        R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95% |     R2    med%    p95%
   --------------------------------------------------------------------------------------------------------------------------
-  NMOS_ON: mlp             0.9995    1.76    7.83 | 0.9999    1.09    3.98 | 0.9997    1.76    7.61 | 0.9995    1.54    5.01
-  NMOS_OFF: mlp            0.9991    3.39   19.05 | 0.9997    1.07    4.12 | 0.9904    6.53   35.87 | 0.9996    0.55    4.04
-  PMOS_ON: mlp             0.9995    2.45   10.47 | 1.0000    0.68    2.94 | 0.9999    2.46   10.37 | 0.9994    1.47    6.77
-  PMOS_OFF: mlp            0.9996    1.35    6.93 |    n/a     n/a     n/a | 0.9942    2.32   22.06 | 0.9994    0.68    4.51
+  NMOS_ON: mlp             1.0000    0.56    2.79 | 1.0000    1.02    3.99 | 1.0000    0.58    2.89 | 1.0000    0.34    1.54
+  NMOS_OFF: mlp            1.0000    0.01    1.57 | 0.9998    0.71    3.18 | 1.0000    0.17    1.54 | 1.0000    0.01    0.56
+  PMOS_ON: mlp             1.0000    0.35    1.34 | 1.0000    0.79    3.29 | 1.0000    0.36    1.37 | 1.0000    0.18    1.15
+  PMOS_OFF: xgboost        1.0000    0.01    2.38 | 0.9997    0.31    1.67 | 1.0000    0.15    2.46 | 1.0000    0.01    0.27
 
 Test set, plain relative error |I_ML - I_SPICE| / |I_SPICE| (no 1 fA floor):
-  NMOS_ON   id med 1.76% / p95 7.8%, ig med 1.09% / p95 4.1%, is med 1.76% / p95 7.6%, ib med 1.54% / p95 5.0%
-  NMOS_OFF  id med 3.39% / p95 19.1%, ig med 1.08% / p95 4.2%, is med 14.63% / p95 61.1%, ib med 0.55% / p95 4.0%
-  PMOS_ON   id med 2.45% / p95 10.5%, ig med 0.94% / p95 3.9%, is med 2.46% / p95 10.4%, ib med 1.47% / p95 6.8%
-  PMOS_OFF  id med 1.35% / p95 6.9%, ig n/a, is med 6.75% / p95 30.0%, ib med 0.68% / p95 4.5%
+  NMOS_ON   id med 0.56% / p95 2.8%, ig med 1.22% / p95 4.5%, is med 0.58% / p95 3.0%, ib med 0.34% / p95 1.5%
+  NMOS_OFF  id med 0.01% / p95 1.6%, ig med 0.72% / p95 3.3%, is med 0.48% / p95 2.5%, ib med 0.01% / p95 0.6%
+  PMOS_ON   id med 0.35% / p95 1.3%, ig med 1.04% / p95 3.6%, is med 0.36% / p95 1.5%, ib med 0.18% / p95 1.1%
+  PMOS_OFF  id med 0.01% / p95 2.4%, ig med 0.31% / p95 1.7%, is med 0.64% / p95 7.1%, ib med 0.01% / p95 0.3%
 
 Saved models: ml_models/<CASE>.joblib (see ml_models/model_index.json)
 Plots       : results/plots/pred_vs_spice_<CASE>.png (test set)
