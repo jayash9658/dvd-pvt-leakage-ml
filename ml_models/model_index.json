@@ -3,52 +3,52 @@
     "file": "NMOS_ON.joblib",
     "model_type": "mlp",
     "label": "MLP neural network",
-    "validation_score": 1.6822,
+    "validation_score": 1.2754,
     "method": "physics component models (scripts/ml/common.py)",
     "test": {
       "id": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 1.0,
-        "r2_lin": 0.999955,
-        "med_err_pct": 0.562064,
-        "p95_err_pct": 2.789911,
-        "mean_err_pct": 0.908407,
-        "med_err_plain_pct": 0.562064,
-        "p95_err_plain_pct": 2.789911
+        "r2_log": 0.999999,
+        "r2_lin": 0.999906,
+        "med_err_pct": 0.532542,
+        "p95_err_pct": 2.768936,
+        "mean_err_pct": 0.887603,
+        "med_err_plain_pct": 0.532542,
+        "p95_err_plain_pct": 2.768936
       },
       "ig": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999979,
-        "r2_lin": 0.999586,
-        "med_err_pct": 1.015126,
-        "p95_err_pct": 3.994932,
-        "mean_err_pct": 1.354375,
-        "med_err_plain_pct": 1.221743,
-        "p95_err_plain_pct": 4.484622
+        "r2_log": 0.999993,
+        "r2_lin": 0.999747,
+        "med_err_pct": 0.590385,
+        "p95_err_pct": 2.679401,
+        "mean_err_pct": 0.878028,
+        "med_err_plain_pct": 0.930624,
+        "p95_err_plain_pct": 12.71908
       },
       "is": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 1.0,
-        "r2_lin": 0.999955,
-        "med_err_pct": 0.578482,
-        "p95_err_pct": 2.889884,
-        "mean_err_pct": 0.919398,
-        "med_err_plain_pct": 0.583127,
-        "p95_err_plain_pct": 2.977304
+        "r2_log": 0.999999,
+        "r2_lin": 0.999906,
+        "med_err_pct": 0.528734,
+        "p95_err_pct": 2.591273,
+        "mean_err_pct": 0.861237,
+        "med_err_plain_pct": 0.556644,
+        "p95_err_plain_pct": 2.883981
       },
       "ib": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999981,
-        "r2_lin": 0.999841,
-        "med_err_pct": 0.33617,
-        "p95_err_pct": 1.543681,
-        "mean_err_pct": 0.485678,
-        "med_err_plain_pct": 0.33617,
-        "p95_err_plain_pct": 1.543681
+        "r2_log": 0.99999,
+        "r2_lin": 0.999971,
+        "med_err_pct": 0.118676,
+        "p95_err_pct": 1.189405,
+        "mean_err_pct": 0.292907,
+        "med_err_plain_pct": 0.120884,
+        "p95_err_plain_pct": 1.199406
       }
     }
   },
@@ -56,52 +56,52 @@
     "file": "NMOS_OFF.joblib",
     "model_type": "mlp",
     "label": "MLP neural network",
-    "validation_score": 0.944,
+    "validation_score": 3.8235,
     "method": "physics component models (scripts/ml/common.py)",
     "test": {
       "id": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999992,
-        "r2_lin": 0.999872,
-        "med_err_pct": 0.009458,
-        "p95_err_pct": 1.569953,
-        "mean_err_pct": 0.360194,
-        "med_err_plain_pct": 0.009458,
-        "p95_err_plain_pct": 1.569953
+        "r2_log": 0.999996,
+        "r2_lin": 0.99994,
+        "med_err_pct": 0.009769,
+        "p95_err_pct": 1.120596,
+        "mean_err_pct": 0.281853,
+        "med_err_plain_pct": 0.010157,
+        "p95_err_plain_pct": 1.538477
       },
       "ig": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999797,
-        "r2_lin": 0.999291,
-        "med_err_pct": 0.708206,
-        "p95_err_pct": 3.175508,
-        "mean_err_pct": 1.325917,
-        "med_err_plain_pct": 0.715816,
-        "p95_err_plain_pct": 3.266546
+        "r2_log": 0.997258,
+        "r2_lin": 0.97906,
+        "med_err_pct": 4.875229,
+        "p95_err_pct": 22.800242,
+        "mean_err_pct": 7.826084,
+        "med_err_plain_pct": NaN,
+        "p95_err_plain_pct": NaN
       },
       "is": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999992,
-        "r2_lin": 0.999875,
-        "med_err_pct": 0.167758,
-        "p95_err_pct": 1.542853,
-        "mean_err_pct": 0.409626,
-        "med_err_plain_pct": 0.475223,
-        "p95_err_plain_pct": 2.535259
+        "r2_log": 0.999997,
+        "r2_lin": 0.999941,
+        "med_err_pct": 0.11628,
+        "p95_err_pct": 1.1143,
+        "mean_err_pct": 0.318232,
+        "med_err_plain_pct": 0.403283,
+        "p95_err_plain_pct": 4.837097
       },
       "ib": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999998,
-        "r2_lin": 0.999974,
-        "med_err_pct": 0.010229,
-        "p95_err_pct": 0.561725,
-        "mean_err_pct": 0.114308,
-        "med_err_plain_pct": 0.010229,
-        "p95_err_plain_pct": 0.561725
+        "r2_log": 0.999999,
+        "r2_lin": 0.999991,
+        "med_err_pct": 0.009075,
+        "p95_err_pct": 0.33826,
+        "mean_err_pct": 0.070012,
+        "med_err_plain_pct": 0.009704,
+        "p95_err_plain_pct": 0.542474
       }
     }
   },
@@ -109,52 +109,52 @@
     "file": "PMOS_ON.joblib",
     "model_type": "mlp",
     "label": "MLP neural network",
-    "validation_score": 1.0741,
+    "validation_score": 1.0225,
     "method": "physics component models (scripts/ml/common.py)",
     "test": {
       "id": {
         "n": 1500.0,
         "floor_A": 0.0,
         "r2_log": 1.0,
-        "r2_lin": 0.999868,
-        "med_err_pct": 0.353515,
-        "p95_err_pct": 1.340225,
-        "mean_err_pct": 0.491796,
-        "med_err_plain_pct": 0.353515,
-        "p95_err_plain_pct": 1.340225
+        "r2_lin": 0.999938,
+        "med_err_pct": 0.32484,
+        "p95_err_pct": 1.555706,
+        "mean_err_pct": 0.515142,
+        "med_err_plain_pct": 0.32484,
+        "p95_err_plain_pct": 1.555706
       },
       "ig": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999983,
-        "r2_lin": 0.999459,
-        "med_err_pct": 0.786205,
-        "p95_err_pct": 3.29268,
-        "mean_err_pct": 1.108784,
-        "med_err_plain_pct": 1.038295,
-        "p95_err_plain_pct": 3.595394
+        "r2_log": 0.999992,
+        "r2_lin": 0.999832,
+        "med_err_pct": 0.555383,
+        "p95_err_pct": 2.494506,
+        "mean_err_pct": 0.817003,
+        "med_err_plain_pct": 0.877439,
+        "p95_err_plain_pct": 9.906663
       },
       "is": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 1.0,
-        "r2_lin": 0.999868,
-        "med_err_pct": 0.360093,
-        "p95_err_pct": 1.37234,
-        "mean_err_pct": 0.49133,
-        "med_err_plain_pct": 0.363185,
-        "p95_err_plain_pct": 1.48942
+        "r2_log": 0.999884,
+        "r2_lin": 0.999938,
+        "med_err_pct": 0.337206,
+        "p95_err_pct": 1.548689,
+        "mean_err_pct": 0.596493,
+        "med_err_plain_pct": 0.36032,
+        "p95_err_plain_pct": 1.776384
       },
       "ib": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.99999,
-        "r2_lin": 0.999509,
-        "med_err_pct": 0.182161,
-        "p95_err_pct": 1.149385,
-        "mean_err_pct": 0.345362,
-        "med_err_plain_pct": 0.182161,
-        "p95_err_plain_pct": 1.149385
+        "r2_log": 0.999992,
+        "r2_lin": 0.999789,
+        "med_err_pct": 0.156017,
+        "p95_err_pct": 1.145434,
+        "mean_err_pct": 0.293879,
+        "med_err_plain_pct": 0.156017,
+        "p95_err_plain_pct": 1.145434
       }
     }
   },
@@ -162,52 +162,52 @@
     "file": "PMOS_OFF.joblib",
     "model_type": "xgboost",
     "label": "XGBoost",
-    "validation_score": 0.942,
+    "validation_score": 1.9777,
     "method": "physics component models (scripts/ml/common.py)",
     "test": {
       "id": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999975,
-        "r2_lin": 0.999284,
-        "med_err_pct": 0.010508,
-        "p95_err_pct": 2.382076,
-        "mean_err_pct": 0.555372,
-        "med_err_plain_pct": 0.010508,
-        "p95_err_plain_pct": 2.412122
+        "r2_log": 0.999945,
+        "r2_lin": 0.999797,
+        "med_err_pct": 0.010732,
+        "p95_err_pct": 2.901831,
+        "mean_err_pct": 0.683223,
+        "med_err_plain_pct": 0.014351,
+        "p95_err_plain_pct": 3.739801
       },
       "ig": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.9997,
-        "r2_lin": 0.99995,
-        "med_err_pct": 0.308395,
-        "p95_err_pct": 1.670444,
-        "mean_err_pct": 0.890375,
-        "med_err_plain_pct": 0.309082,
-        "p95_err_plain_pct": 1.688523
+        "r2_log": 0.999736,
+        "r2_lin": 0.999593,
+        "med_err_pct": 1.313667,
+        "p95_err_pct": 8.74917,
+        "mean_err_pct": 2.290294,
+        "med_err_plain_pct": NaN,
+        "p95_err_plain_pct": NaN
       },
       "is": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999988,
-        "r2_lin": 0.999321,
-        "med_err_pct": 0.148022,
-        "p95_err_pct": 2.456046,
-        "mean_err_pct": 0.585448,
-        "med_err_plain_pct": 0.643514,
-        "p95_err_plain_pct": 7.120937
+        "r2_log": 0.999983,
+        "r2_lin": 0.999802,
+        "med_err_pct": 0.152591,
+        "p95_err_pct": 3.180082,
+        "mean_err_pct": 0.720289,
+        "med_err_plain_pct": 0.693622,
+        "p95_err_plain_pct": 7.418955
       },
       "ib": {
         "n": 1500.0,
         "floor_A": 0.0,
-        "r2_log": 0.999999,
+        "r2_log": 1.0,
         "r2_lin": 0.999998,
-        "med_err_pct": 0.009535,
-        "p95_err_pct": 0.273868,
-        "mean_err_pct": 0.063378,
-        "med_err_plain_pct": 0.009535,
-        "p95_err_plain_pct": 0.273868
+        "med_err_pct": 0.009385,
+        "p95_err_pct": 0.278745,
+        "mean_err_pct": 0.059255,
+        "med_err_plain_pct": NaN,
+        "p95_err_plain_pct": NaN
       }
     }
   }

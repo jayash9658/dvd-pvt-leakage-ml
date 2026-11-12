@@ -6,7 +6,9 @@ For each case (NMOS_ON, NMOS_OFF, PMOS_ON, PMOS_OFF) this script
      process parameters), all independent, uniform as in Section 4 of the spec
      except for a mild enrichment of the extremes of Vd, Vs and T (see
      config.EDGE_*: ~15 % of samples near each variable's ends instead of
-     10-12 %; the rest stays uniform),
+     10-12 %) and 20 % "gate operating points" (config.GATE_POINT_FRAC: Vd, Vs
+     exactly on a rail or within a small step of each other, as inside a
+     logic gate),
   2. writes one single-FET netlist per sample (each terminal has its own
      voltage source; required .options line included),
   3. simulates them with ngspice (op analysis), many circuits per ngspice
@@ -62,6 +64,33 @@ def edge_uniform(rng, n, lo, hi, band, p_edge):
     return np.where(use_edge, edge_val, u)
 
 
+def gate_points(rng, n, vdd, vd, vs):
+    """
+    Replace (vd, vs) of a fraction config.GATE_POINT_FRAC of the samples by a
+    gate operating point. One terminal ("a") is at 0 V (40 %), at VDD (40 %) or
+    uniform (20 %); the other ("b") is exactly 0 V (15 %), exactly VDD (15 %),
+    within delta of terminal a (35 %), within delta of a rail (20 %) or uniform
+    (15 %), with delta log-uniform in config.GATE_DELTA_RANGE. Which of the two
+    is the drain is a coin flip. Drawn after everything else, so the remaining
+    samples are the same as without gate points.
+    """
+    is_gp = rng.uniform(0, 1, n) < config.GATE_POINT_FRAC
+    a_kind = rng.choice(3, n, p=[0.4, 0.4, 0.2])
+    b_kind = rng.choice(5, n, p=[0.15, 0.15, 0.35, 0.20, 0.15])
+    u_a, u_b = rng.uniform(0, 1, n), rng.uniform(0, 1, n)
+    delta = np.exp(rng.uniform(*np.log(config.GATE_DELTA_RANGE), n)) / vdd   # as a fraction of VDD
+    up, rail_hi, swap = (rng.uniform(0, 1, n) < 0.5 for _ in range(3))
+
+    a = np.select([a_kind == 0, a_kind == 1], [0.0, 1.0], u_a)
+    near_a = np.where(up, a + delta, a - delta)
+    near_a = np.where((near_a < 0) | (near_a > 1), 2 * a - near_a, near_a)    # reflect back into [0, VDD]
+    b = np.select([b_kind == 0, b_kind == 1, b_kind == 2, b_kind == 3],
+                  [0.0, 1.0, near_a, np.where(rail_hi, 1 - delta, delta)], u_b)
+    b = np.clip(b, 0.0, 1.0)
+    gd, gs = np.where(swap, b, a) * vdd, np.where(swap, a, b) * vdd
+    return np.where(is_gp, gd, vd), np.where(is_gp, gs, vs)
+
+
 def draw_samples(case: str, n: int, nominal: dict) -> pd.DataFrame:
     spec = config.CASES[case]
     dev = spec["type"]
@@ -75,9 +104,11 @@ def draw_samples(case: str, n: int, nominal: dict) -> pd.DataFrame:
     temp = edge_uniform(rng, n, *config.TEMP_RANGE, config.EDGE_TEMP_BAND, config.EDGE_P_TEMP)
     proc = {p: nominal[dev][p] * rng.uniform(1 - config.PROC_TOL, 1 + config.PROC_TOL, n)
             for p in config.PROC_PARAMS}
+    vd, vs = gate_points(rng, n, vdd, vd, vs)
     vg = vdd if spec["vg"] == "VDD" else np.zeros(n)
     vb = vdd if spec["vb"] == "VDD" else np.zeros(n)
 
+    vd, vs = np.round(vd, 12), np.round(vs, 12)       # exactly what the netlist gets
     df = pd.DataFrame({"vdd": vdd, "temp": temp, "w": w, "vd": vd, "vs": vs,
                        "vg": vg, "vb": vb, **proc})
     return df
@@ -98,10 +129,10 @@ def sample_netlist(case: str, idx: int, row, nominal: dict, lib_ref: str,
            + config.SPICE_OPTIONS + "\n"
            + f".temp {row.temp:.6f}\n\n"
            + f"M1 drain gate source body {dev} W={row.w:.6e} L={config.L_MIN:.3e}\n"
-           + f"Vd drain 0 dc {row.vd:.9f}\n"
-           + f"Vg gate 0 dc {row.vg:.9f}\n"
-           + f"Vs source 0 dc {row.vs:.9f}\n"
-           + f"Vb body 0 dc {row.vb:.9f}\n")
+           + f"Vd drain 0 dc {row.vd:.12f}\n"
+           + f"Vg gate 0 dc {row.vg:.12f}\n"
+           + f"Vs source 0 dc {row.vs:.12f}\n"
+           + f"Vb body 0 dc {row.vb:.12f}\n")
     if with_control:
         txt += ("\n.control\nset numdgt=12\nop\n"
                 "* terminal currents INTO the device = -I(source)\n"
@@ -195,7 +226,7 @@ def main():
     for case in args.cases:
         df, comp = run_case(case, args.n, exe, nominal, args.workers)
         out = OUT_DIR / f"{case}.csv"
-        df.to_csv(out, index=False, float_format="%.10e")
+        df.to_csv(out, index=False, float_format="%.12e")
         (OUT_DIR / "components").mkdir(exist_ok=True)
         comp.to_csv(OUT_DIR / "components" / f"{case}_components.csv", index=False,
                     float_format="%.10e")

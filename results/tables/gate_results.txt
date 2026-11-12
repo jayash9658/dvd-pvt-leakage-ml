@@ -1,0 +1,50 @@
+PART B: GATE-LEVEL VALIDATION (ML vs SPICE)
+32nm_LP, VDD = 1.0 V +/- 10 %, 200 corners (seed 2025), 18 gate/input cases, 3599 simulations (1 failed)
+
+Leakage = current drawn from all sources at VDD (supply + high inputs) = static power / VDD.
+ML leakage: transistor terminal voltages from the SPICE node voltages -> Part A models -> gate leakage.
+Error = |ML - SPICE| / SPICE. Bias = median of (ML - SPICE) / SPICE. Input order is AB
+(NAND2: A drives the NMOS next to the output; NOR2: A drives the PMOS next to VDD).
+'ML nodes' columns: the same, but with internal node voltages solved by the ML models themselves.
+
+Gate    In  SPICE med (A)   ML med (A)   Bias %  Med err %  p95 err % Mean err % | ML nodes: med %    p95 %
+------------------------------------------------------------------------------------------------------------
+INV      0     2.1370e-11   2.1325e-11     0.53       0.78       2.30       0.90 |            0.78     2.30
+INV      1     4.2783e-11   4.2573e-11     0.26       0.68       2.60       0.91 |            0.68     2.60
+NAND2   00     2.5219e-11   2.4950e-11     0.56       0.78       2.52       0.97 |            0.76     2.55
+NAND2   01     9.4058e-11   9.3902e-11     0.67       0.74       1.77       0.80 |            0.74     1.77
+NAND2   10     2.4324e-11   2.4330e-11     0.30       0.60       2.19       0.77 |            0.62     2.20
+NAND2   11     1.3304e-10   1.3310e-10     0.66       0.87       2.54       1.00 |            0.87     2.54
+NOR2    00     7.2035e-11   7.1354e-11     0.40       0.73       2.29       0.90 |            0.73     2.29
+NOR2    01     9.5220e-11   9.5272e-11     0.16       0.70       2.25       0.90 |            0.70     2.25
+NOR2    10     4.3141e-11   4.3014e-11     0.55       0.69       1.78       0.80 |            0.71     1.98
+NOR2    11     4.4560e-11   4.4459e-11     0.45       0.65       1.64       0.75 |            0.69     1.75
+AND2    00     8.3417e-11   8.3905e-11     0.43       0.72       1.91       0.82 |            0.72     1.91
+AND2    01     1.4053e-10   1.4029e-10     0.51       0.67       1.73       0.76 |            0.67     1.73
+AND2    10     7.1418e-11   7.1986e-11     0.36       0.64       1.93       0.76 |            0.63     1.93
+AND2    11     1.7182e-10   1.7327e-10     0.66       0.82       2.05       0.90 |            0.82     2.05
+OR2     00     1.2567e-10   1.2607e-10     0.33       0.65       1.86       0.77 |            0.65     1.86
+OR2     01     1.1619e-10   1.1638e-10     0.14       0.69       2.01       0.85 |            0.69     2.01
+OR2     10     6.9025e-11   6.9551e-11     0.54       0.60       1.42       0.69 |            0.62     1.42
+OR2     11     8.4780e-11   8.4640e-11     0.47       0.59       1.53       0.66 |            0.63     1.49
+------------------------------------------------------------------------------------------------------------
+INV    all     3.1052e-11   3.1317e-11     0.37       0.73       2.55       0.91 |            0.73     2.55
+NAND2  all     5.8602e-11   5.8809e-11     0.56       0.73       2.39       0.88 |            0.73     2.39
+NOR2   all     5.4952e-11   5.5458e-11     0.40       0.69       2.10       0.84 |            0.70     2.10
+AND2   all     1.0774e-10   1.0804e-10     0.48       0.68       1.95       0.81 |            0.70     1.97
+OR2    all     9.2170e-11   9.2341e-11     0.43       0.63       1.78       0.74 |            0.65     1.78
+ALL    all     6.9644e-11   6.9872e-11     0.46       0.69       2.07       0.83 |            0.69     2.07
+
+Overall mean accuracy = 99.17 %  (mean error 0.83 %, median 0.69 %)
+
+Ten largest errors:
+  NOR2    01 corner  74  VDD 1.098 V  T  113.3 C  SPICE 3.430e-10 A  ML 3.228e-10 A  error 5.91 %
+  OR2     01 corner  74  VDD 1.098 V  T  113.3 C  SPICE 3.709e-10 A  ML 3.506e-10 A  error 5.48 %
+  INV      1 corner  74  VDD 1.098 V  T  113.3 C  SPICE 1.580e-10 A  ML 1.501e-10 A  error 4.95 %
+  NOR2    00 corner  40  VDD 0.991 V  T  -17.5 C  SPICE 6.839e-12 A  ML 7.167e-12 A  error 4.79 %
+  NOR2    01 corner  83  VDD 1.096 V  T   97.3 C  SPICE 2.193e-10 A  ML 2.089e-10 A  error 4.75 %
+  INV      1 corner 126  VDD 1.010 V  T  115.5 C  SPICE 3.473e-11 A  ML 3.637e-11 A  error 4.74 %
+  NOR2    00 corner  85  VDD 1.089 V  T  -32.9 C  SPICE 6.666e-11 A  ML 6.350e-11 A  error 4.73 %
+  NAND2   00 corner  40  VDD 0.991 V  T  -17.5 C  SPICE 3.246e-12 A  ML 3.398e-12 A  error 4.69 %
+  INV      0 corner  40  VDD 0.991 V  T  -17.5 C  SPICE 1.674e-12 A  ML 1.750e-12 A  error 4.54 %
+  OR2     01 corner  83  VDD 1.096 V  T   97.3 C  SPICE 2.339e-10 A  ML 2.234e-10 A  error 4.48 %

@@ -66,6 +66,8 @@ K_OVER_Q = 8.617333262e-5          # Boltzmann constant / electron charge, V/K
 T_NOM = 300.15                     # K, model-card TNOM (27 degC)
 ULP_1 = 2.0 ** -52                 # spacing of doubles near 1.0 (= 2.22e-16)
 NOISE_ABS = 1e-14                  # only values below this can be noise
+SOFT_FLOOR = 1e-5                  # soft floor of each mechanism, as a fraction of its 90th percentile
+CHANNEL_FLOOR = 1e-18              # A/V, upper limit of the soft floor of the channel conductance
 I_FLOOR = 1e-15                    # A, floor in the relative-error denominator (see rel_error)
 
 # model-card constants used by the exact (not learned) equations
@@ -370,7 +372,7 @@ def rel_error(pred, true, floor=I_FLOOR):
     an OFF-state source current of 1e-19 A, where channel and junction
     currents cancel, would otherwise count a 1e-18 A miss as a "1000 % error".
     For a current whose typical value is below the floor (OFF-state Ig
-    ~ 1e-22 A) the floor is lowered to that current's 1st percentile.
+    ~ 1e-22 A) the floor is lowered to a tenth of that current's median.
     """
     return np.abs(pred - true) / np.maximum(np.abs(true), floor)
 
@@ -385,7 +387,7 @@ def metrics(pred: np.ndarray, true: np.ndarray, keep=None) -> dict:
     keep = np.ones(len(true), bool) if keep is None else keep
     p, t = pred[keep], true[keep]
     a = np.abs(t)
-    floor = I_FLOOR if np.median(a) > I_FLOOR else float(np.quantile(a, 0.01))
+    floor = I_FLOOR if np.median(a) > I_FLOOR else 0.1 * float(np.median(a))
     e = rel_error(p, t, floor)
     e_plain = np.abs(p - t) / a
     return {
@@ -422,6 +424,10 @@ def reference_currents(df: pd.DataFrame, comp: pd.DataFrame, dev: str) -> pd.Dat
 # ----------------------------------------------------------------------------
 # One model per case
 # ----------------------------------------------------------------------------
+def x_ln(model, k, v, mask):
+    return model._ln_base(k, _sub(v, mask))
+
+
 class TransistorModel:
     """
     Predicts (id, ig, is, ib) for one case from a DataFrame with the 12 CSV input
@@ -435,7 +441,7 @@ class TransistorModel:
         self.is_on = case.endswith("_ON")
         self.model_name = model_name
         self._make = make_regressor
-        self.base, self.regs, self.sign, self.n_fit = {}, {}, {}, {}
+        self.base, self.regs, self.sign, self.n_fit, self.ln_eps = {}, {}, {}, {}, {}
 
     # targets: positive magnitudes of each learned mechanism
     def _magnitudes(self, comp: pd.DataFrame, v: dict) -> dict:
@@ -451,8 +457,29 @@ class TransistorModel:
         return out
 
     def _x(self, v):
-        lns = [self.base[k].ln(v) for k in LEARNED]
-        return np.column_stack([features(v)] + lns)
+        """
+        ML inputs: the features plus the six physics-equation values. Each input
+        is limited to the range seen in training. Inside a gate a transistor often
+        sits exactly on a rail (e.g. source = body, where ln of the junction
+        current is -infinity); without the limit such inputs would push the ML
+        correction far outside what it has learned.
+        """
+        lns = [self._ln_base(k, v) for k in LEARNED]
+        x = np.column_stack([features(v)] + lns)
+        if getattr(self, "x_lo", None) is not None:
+            x = np.clip(np.nan_to_num(x, nan=0.0, posinf=np.inf, neginf=-np.inf), self.x_lo, self.x_hi)
+        return x
+
+    def _ln_base(self, k, v):
+        """ln(I_physics + eps_k): the physics value with the soft floor eps_k (see fit)."""
+        return np.logaddexp(self.base[k].ln(v), self.ln_eps[k])
+
+    def set_input_range(self, df: pd.DataFrame):
+        """Record the range of every ML input over the training rows `df`."""
+        self.x_lo = self.x_hi = None
+        x = self._x(device_vars(df, self.dev))
+        x = np.where(np.isfinite(x), x, np.nan)
+        self.x_lo, self.x_hi = np.nanmin(x, axis=0), np.nanmax(x, axis=0)
 
     def fit(self, df: pd.DataFrame, comp: pd.DataFrame, n_jobs: int = 1):
         v = device_vars(df, self.dev)
@@ -468,16 +495,23 @@ class TransistorModel:
             self.n_fit[k] = int(good.sum())
             bases[k].fit(_sub(v, good), np.log(self.sign[k] * m[good]))
             self.base[k] = bases[k]
-        # 2) ML learns the correction ln|I| - ln|I_physics| for each mechanism
+            # soft floor: 1e-5 of the mechanism's 90th-percentile magnitude. Below it
+            # the current is negligible, and without a floor ln|I| would run over
+            # 20-40 decades (down to exactly zero bias) and use up the ML's accuracy there.
+            # (The channel conductance spans many useful decades, so its floor is at most 1e-18 A/V.)
+            eps = SOFT_FLOOR * np.quantile(self.sign[k] * m[good], 0.90)
+            self.ln_eps[k] = float(np.log(min(eps, CHANNEL_FLOOR) if k == "ch" else eps))
+        # 2) ML learns the correction ln(|I| + eps) - ln(|I_physics| + eps) for each mechanism
         x = self._x(v)
         for k in LEARNED:
             m = mag[k]
-            good = np.isfinite(m) & (self.sign[k] * m > 0)
-            y = np.log(self.sign[k] * m[good]) - self.base[k].ln(_sub(v, good))
+            good = np.isfinite(m) & (self.sign[k] * m > 0)      # exact zeros (Vds = 0, zero bias) carry no information
+            y = np.logaddexp(np.log(self.sign[k] * m[good]), self.ln_eps[k]) - x_ln(self, k, v, good)
             reg = self._make(n_jobs=n_jobs)
             reg.fit(x[good], y)
             self.regs[k] = reg
         self._make = None
+        self.set_input_range(df)
         return self
 
     def predict_components(self, df: pd.DataFrame, physics_only: bool = False) -> dict:
@@ -485,10 +519,11 @@ class TransistorModel:
         x = None if physics_only else self._x(v)
         c = {}
         for k in LEARNED:
-            ln = self.base[k].ln(v)
-            if not physics_only:
-                ln = ln + np.clip(np.asarray(self.regs[k].predict(x), float).ravel(), -20, 20)
-            c[k] = self.sign[k] * np.exp(np.clip(ln, -745, 700))
+            if physics_only:
+                c[k] = self.sign[k] * np.exp(np.clip(self.base[k].ln(v), -745, 700))
+            else:
+                ln = self._ln_base(k, v) + np.clip(np.asarray(self.regs[k].predict(x), float).ravel(), -20, 20)
+                c[k] = self.sign[k] * np.maximum(np.exp(np.clip(ln, -745, 700)) - np.exp(self.ln_eps[k]), 0.0)
         c["ch"] = c["ch"] * v["vds"]                    # conductance -> current
         c["js"] = -c["js"]                             # back to BSIM4 sign (negative)
         c["jd"] = drain_junction(v)

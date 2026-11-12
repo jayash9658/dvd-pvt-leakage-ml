@@ -46,6 +46,14 @@ EDGE_P_TEMP = 0.04
 EDGE_V_BAND = 0.05            # fraction of VDD at each rail
 EDGE_P_V = 0.06
 
+# Gate operating points. Inside a logic gate a transistor is never at a random
+# (Vd, Vs): OFF devices sit exactly on the rails, ON devices have Vd within
+# nanovolts-microvolts of Vs, and stack nodes sit a few mV from a rail. A
+# fraction GATE_POINT_FRAC of the samples is drawn from such points (see
+# 01_generate_transistor_data.py); VDD, T, W and process stay as for the rest.
+GATE_POINT_FRAC = 0.20
+GATE_DELTA_RANGE = (1e-8, 0.3)     # V, log-uniform distance from a rail / from the other terminal
+
 # Nominal process parameters read from models/32nm_LP.pm
 # (also re-parsed at run time from the model file; these are a cross-check)
 NOMINAL = {
@@ -85,3 +93,12 @@ COMPONENTS = ["id", "isub", "igidl", "igisl", "igs", "igd", "igb", "igcs", "igcd
 # CSV column order required by the deliverables
 CSV_COLUMNS = ["vdd", "temp", "w", "vd", "vs", "vg", "vb",
                "vth0", "toxe", "ndep", "u0", "xj", "id", "ig", "is", "ib"]
+
+# ----------------------------------------------------------------------------
+# Parts B and C: gates, corners and test circuit
+# ----------------------------------------------------------------------------
+N_CORNERS = 200           # one corner = one draw of VDD, T and the 10 process parameters
+# Transistor widths in multiples of Lmin: (NMOS, PMOS). Series stacks are
+# doubled, as in a standard cell library. AND2 = NAND2 + INV, OR2 = NOR2 + INV.
+GATE_W = {"INV": (2, 4), "NAND2": (4, 4), "NOR2": (2, 8)}
+CLA_BITS = 3

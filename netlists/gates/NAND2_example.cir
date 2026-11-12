@@ -1,0 +1,25 @@
+* 32nm_LP NAND2, inputs AB=00, corner 0
+* VDD=1.098892 V, T=30.0840 C
+.param p_n_vth0=0.6181457126 p_n_toxe=1.465177573e-09 p_n_ndep=4.37429306e+18 p_n_u0=0.04538727 p_n_xj=5.435099791e-08
+.param p_p_vth0=-0.6256281622 p_p_toxe=1.571212658e-09 p_p_ndep=3.271794874e+18 p_p_u0=0.0166689512 p_p_xj=9.219573968e-09
+.include "32nm_LP_param.lib"
+.options gmin=1e-18 abstol=1e-18 reltol=1e-6 vntol=1e-9
+.temp 30.083992
+
+mp1 out a vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mp2 out b vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mn1 out a x 0 nmos W=1.2800e-07 L=3.200e-08
+mn2 x b 0 0 nmos W=1.2800e-07 L=3.200e-08
+Vdd vdd 0 dc 1.098891561
+Va a 0 dc 0.000000000
+Vb b 0 dc 0.000000000
+.nodeset v(out)=1.098892
+
+.control
+set numdgt=12
+op
+* leakage = current drawn from every source at VDD (supply + high inputs)
+let ileak = -i(vdd)
+print v(x) v(out) ileak
+.endc
+.end

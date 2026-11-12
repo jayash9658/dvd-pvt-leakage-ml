@@ -120,7 +120,7 @@ def write_text(results, best, path):
           "  p95%  95th-percentile of the same relative error",
           "  The 1 fA floor stops currents far below any gate leakage (and near SPICE",
           "  resolution) from dominating; the OFF-state ig (~1e-22 A) uses its own",
-          "  1st-percentile value as the floor instead.",
+          "  median / 10 as the floor instead.",
           "  Reference values: id, is = SPICE terminal currents (CSV); ig, ib = BSIM4's own",
           "  gate / body current (sum of its components). They equal the terminal values",
           "  except where those carry ~1e-16 A double-precision rounding noise (all of",

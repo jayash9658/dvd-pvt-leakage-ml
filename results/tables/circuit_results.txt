@@ -1,0 +1,41 @@
+PART C: TEST-CIRCUIT VALIDATION, 3-BIT CARRY-LOOKAHEAD ADDER (ML vs SPICE)
+32nm_LP, 42 gates / 204 transistors, 128 input vectors x 200 corners = 25491 operating points (1 SPICE failures dropped)
+ML leakage = sum of the 42 Part B gate models (which call the Part A transistor models).
+
+Input vector              SPICE med A     ML med A   Bias %  Med err %  p95 err % Mean err %
+--------------------------------------------------------------------------------------------
+ALL                        4.5174e-09   4.5320e-09     0.60       0.73       1.79       0.80
+
+Overall mean accuracy = 99.20 %
+Gate level (Part B, all 18 cases): median 0.69 %, p95 2.07 %, mean 0.83 %
+Composition alone (sum of standalone-gate SPICE leakages vs circuit SPICE): bias -0.001 %, median 0.002 %, p95 0.012 %
+
+Five most accurate input vectors:
+Input vector              SPICE med A     ML med A   Bias %  Med err %  p95 err % Mean err %
+A=001 B=100 Cin=1          4.6296e-09   4.6599e-09     0.59       0.69       1.75       0.79
+A=100 B=001 Cin=1          4.6295e-09   4.6599e-09     0.59       0.69       1.75       0.79
+A=000 B=101 Cin=1          4.7236e-09   4.7298e-09     0.59       0.69       1.74       0.79
+A=110 B=000 Cin=1          4.4823e-09   4.5187e-09     0.59       0.70       1.73       0.78
+A=111 B=100 Cin=0          4.4609e-09   4.4980e-09     0.60       0.70       1.75       0.79
+
+Five least accurate input vectors:
+Input vector              SPICE med A     ML med A   Bias %  Med err %  p95 err % Mean err %
+A=101 B=011 Cin=0          4.4926e-09   4.5281e-09     0.62       0.77       1.82       0.81
+A=011 B=101 Cin=0          4.4926e-09   4.5281e-09     0.62       0.77       1.83       0.81
+A=010 B=101 Cin=1          4.9388e-09   4.9509e-09     0.59       0.77       1.88       0.83
+A=100 B=011 Cin=1          4.9388e-09   4.9509e-09     0.59       0.77       1.88       0.83
+A=001 B=110 Cin=1          4.9388e-09   4.9509e-09     0.59       0.77       1.88       0.83
+
+Ten largest single errors:
+  A=111 B=000 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.540e-09 A  ML 9.141e-09 A  error 4.18 %
+  A=110 B=001 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.585e-09 A  ML 9.186e-09 A  error 4.16 %
+  A=101 B=010 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.585e-09 A  ML 9.186e-09 A  error 4.16 %
+  A=011 B=100 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.585e-09 A  ML 9.186e-09 A  error 4.16 %
+  A=010 B=101 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.629e-09 A  ML 9.230e-09 A  error 4.14 %
+  A=100 B=011 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.629e-09 A  ML 9.230e-09 A  error 4.14 %
+  A=001 B=110 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.629e-09 A  ML 9.230e-09 A  error 4.14 %
+  A=000 B=111 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 9.673e-09 A  ML 9.275e-09 A  error 4.11 %
+  A=111 B=100 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 8.853e-09 A  ML 8.515e-09 A  error 3.81 %
+  A=110 B=101 Cin=1        corner  74  VDD 1.098 V  T  113.3 C  SPICE 8.897e-09 A  ML 8.560e-09 A  error 3.79 %
+
+All 128 per-vector rows are in circuit_results_table.csv.

@@ -7,10 +7,10 @@
 .temp 21.510266
 
 M1 drain gate source body nmos W=1.531854e-07 L=3.200e-08
-Vd drain 0 dc 0.453114958
-Vg gate 0 dc 0.000000000
-Vs source 0 dc 0.632645374
-Vb body 0 dc 0.000000000
+Vd drain 0 dc 0.453114957616
+Vg gate 0 dc 0.000000000000
+Vs source 0 dc 0.632645374447
+Vb body 0 dc 0.000000000000
 
 .control
 set numdgt=12

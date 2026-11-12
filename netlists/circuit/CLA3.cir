@@ -1,0 +1,93 @@
+* 32nm_LP 3-bit carry-lookahead adder, corner 0
+* VDD=1.098892 V, T=30.0840 C; 42 gates (12 AND2, 24 NAND2, 6 OR2)
+.param p_n_vth0=0.6181457126 p_n_toxe=1.465177573e-09 p_n_ndep=4.37429306e+18 p_n_u0=0.04538727 p_n_xj=5.435099791e-08
+.param p_p_vth0=-0.6256281622 p_p_toxe=1.571212658e-09 p_p_ndep=3.271794874e+18 p_p_u0=0.0166689512 p_p_xj=9.219573968e-09
+.include "32nm_LP_param.lib"
+.options gmin=1e-18 abstol=1e-18 reltol=1e-6 vntol=1e-9
+.temp 30.083992
+
+.subckt AND2 a b out vdd
+mp1 n a vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mp2 n b vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mn1 n a x 0 nmos W=1.2800e-07 L=3.200e-08
+mn2 x b 0 0 nmos W=1.2800e-07 L=3.200e-08
+mpi1 out n vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mni1 out n 0 0 nmos W=6.4000e-08 L=3.200e-08
+.ends AND2
+
+.subckt NAND2 a b out vdd
+mp1 out a vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mp2 out b vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mn1 out a x 0 nmos W=1.2800e-07 L=3.200e-08
+mn2 x b 0 0 nmos W=1.2800e-07 L=3.200e-08
+.ends NAND2
+
+.subckt OR2 a b out vdd
+mp1 y a vdd vdd pmos W=2.5600e-07 L=3.200e-08
+mp2 n b y vdd pmos W=2.5600e-07 L=3.200e-08
+mn1 n a 0 0 nmos W=6.4000e-08 L=3.200e-08
+mn2 n b 0 0 nmos W=6.4000e-08 L=3.200e-08
+mpi1 out n vdd vdd pmos W=1.2800e-07 L=3.200e-08
+mni1 out n 0 0 nmos W=6.4000e-08 L=3.200e-08
+.ends OR2
+
+x01 a0 b0 g0 vdd AND2
+x02 a0 b0 p0_n1 vdd NAND2
+x03 a0 p0_n1 p0_n2 vdd NAND2
+x04 b0 p0_n1 p0_n3 vdd NAND2
+x05 p0_n2 p0_n3 p0 vdd NAND2
+x06 a1 b1 g1 vdd AND2
+x07 a1 b1 p1_n1 vdd NAND2
+x08 a1 p1_n1 p1_n2 vdd NAND2
+x09 b1 p1_n1 p1_n3 vdd NAND2
+x10 p1_n2 p1_n3 p1 vdd NAND2
+x11 a2 b2 g2 vdd AND2
+x12 a2 b2 p2_n1 vdd NAND2
+x13 a2 p2_n1 p2_n2 vdd NAND2
+x14 b2 p2_n1 p2_n3 vdd NAND2
+x15 p2_n2 p2_n3 p2 vdd NAND2
+x16 p0 c0 t0_0 vdd AND2
+x17 g0 t0_0 c1 vdd OR2
+x18 p1 g0 t1_1 vdd AND2
+x19 p1 p0 pp1_0 vdd AND2
+x20 pp1_0 c0 t1_0 vdd AND2
+x21 t1_1 t1_0 o1_1 vdd OR2
+x22 g1 o1_1 c2 vdd OR2
+x23 p2 g1 t2_2 vdd AND2
+x24 p2 p1 pp2_1 vdd AND2
+x25 pp2_1 g0 t2_1 vdd AND2
+x26 pp2_1 p0 pp2_0 vdd AND2
+x27 pp2_0 c0 t2_0 vdd AND2
+x28 t2_1 t2_0 o2_2 vdd OR2
+x29 t2_2 o2_2 o2_1 vdd OR2
+x30 g2 o2_1 c3 vdd OR2
+x31 p0 c0 s0_n1 vdd NAND2
+x32 p0 s0_n1 s0_n2 vdd NAND2
+x33 c0 s0_n1 s0_n3 vdd NAND2
+x34 s0_n2 s0_n3 s0 vdd NAND2
+x35 p1 c1 s1_n1 vdd NAND2
+x36 p1 s1_n1 s1_n2 vdd NAND2
+x37 c1 s1_n1 s1_n3 vdd NAND2
+x38 s1_n2 s1_n3 s1 vdd NAND2
+x39 p2 c2 s2_n1 vdd NAND2
+x40 p2 s2_n1 s2_n2 vdd NAND2
+x41 c2 s2_n1 s2_n3 vdd NAND2
+x42 s2_n2 s2_n3 s2 vdd NAND2
+
+Vdd vdd 0 dc 1.098891561
+Va0 a0 0 dc 1.098891561
+Va1 a1 0 dc 0.000000000
+Va2 a2 0 dc 1.098891561
+Vb0 b0 0 dc 1.098891561
+Vb1 b1 0 dc 1.098891561
+Vb2 b2 0 dc 0.000000000
+Vc0 c0 0 dc 1.098891561
+
+.control
+set numdgt=12
+op
+* leakage = current drawn from every source at VDD (supply + high inputs)
+let ileak = -i(vdd) - i(va0) - i(va2) - i(vb0) - i(vb1) - i(vc0)
+print v(s0) v(s1) v(s2) v(c3) ileak
+.endc
+.end
